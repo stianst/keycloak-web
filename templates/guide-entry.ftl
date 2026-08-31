@@ -37,7 +37,7 @@
                     </select>
                 </div>
 
-                <h1>${guide.title}</h1>
+                <h1 data-pagefind-meta="title">${guide.title}</h1>
                 <#if guide.summary??>
                     <span class="text-muted">${guide.summary}</span>
                 </#if>
@@ -70,7 +70,8 @@
             </#if>
 
 
-            <div class="kc-asciidoc" id="guide-body">
+            <div class="kc-asciidoc" id="guide-body" data-pagefind-body data-pagefind-filter="category:${guide.metadata.title}">
+                <span data-pagefind-filter="version" hidden><#if guide.snapshot>nightly<#else>release</#if></span>
                 <#include "../target/tmp/guide.html" parse=false>
             </div>
         </div>

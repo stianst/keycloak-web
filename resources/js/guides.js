@@ -1,41 +1,135 @@
+var pagefind = null;
+var pagefindAvailable = null;
+
 window.onload = function() {
-    document.getElementById('guide-search').addEventListener("input", search);
+    var searchInput = document.getElementById('guide-search');
+    var clearBtn = document.getElementById('guide-search-clear');
+
+    searchInput.addEventListener("input", debounce(search, 300));
+    searchInput.addEventListener("input", function() {
+        clearBtn.hidden = !searchInput.value;
+    });
+    searchInput.closest('form').addEventListener("submit", function(e) {
+        e.preventDefault();
+        search();
+    });
+
+    clearBtn.addEventListener("click", function() {
+        searchInput.value = '';
+        clearBtn.hidden = true;
+        search();
+        searchInput.focus();
+    });
 
     var params = new URLSearchParams(window.location.search);
     var q = params.get('q');
     if (q) {
-        document.getElementById('guide-search').value = q;
+        searchInput.value = q;
+        clearBtn.hidden = false;
         search();
     }
 }
 
-function search() {
-    var search = document.getElementById('guide-search').value;
+function debounce(fn, delay) {
+    var timer;
+    return function() {
+        clearTimeout(timer);
+        timer = setTimeout(fn, delay);
+    };
+}
+
+async function loadPagefind() {
+    if (pagefindAvailable !== null) return pagefindAvailable;
+
+    var path = document.getElementById('guide-search').getAttribute('data-pagefind');
+    if (!path) {
+        pagefindAvailable = false;
+        return false;
+    }
+
+    try {
+        pagefind = await import(path);
+        pagefindAvailable = true;
+        return true;
+    } catch (e) {
+        pagefindAvailable = false;
+        return false;
+    }
+}
+
+function setSearchLoading(loading) {
+    var spinner = document.getElementById('guide-search-spinner');
+    if (spinner) spinner.hidden = !loading;
+}
+
+async function search() {
+    var query = document.getElementById('guide-search').value.trim();
+
+    updateUrlQuery(query);
+
+    var resultsContainer = document.getElementById('pagefind-results');
+    setSearchLoading(query);
+    if (resultsContainer && await loadPagefind()) {
+        await pagefindSearch(query);
+    } else {
+        cardSearch(query);
+    }
+    setSearchLoading(false);
+}
+
+async function pagefindSearch(query) {
+    var cardContainer = document.getElementById('guide-cards');
+    var resultsContainer = document.getElementById('pagefind-results');
+
+    if (!query) {
+        cardContainer.style.display = '';
+        resultsContainer.style.display = 'none';
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    var version = document.getElementById('guide-search').getAttribute('data-pagefind-version');
+    var searchOptions = version ? { filters: { version: version } } : {};
+    var searchResult = await pagefind.search(query, searchOptions);
+    var results = await Promise.all(
+        searchResult.results.slice(0, 20).map(function(r) { return r.data(); })
+    );
+
+    cardContainer.style.display = 'none';
+    resultsContainer.style.display = '';
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<p class="text-muted mt-4">No guides found.</p>';
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < results.length; i++) {
+        var r = results[i];
+        var title = r.meta && r.meta.title ? r.meta.title : 'Untitled';
+        var category = r.filters && r.filters.category ? r.filters.category[0] : '';
+        html += '<div class="card shadow-sm mb-3">';
+        html += '<div class="card-body">';
+        html += '<h5 class="card-title">';
+        html += '<a href="' + r.url + '" class="link-dark">' + escapeHtml(title) + '</a>';
+        if (category) {
+            html += ' <span class="badge bg-light text-muted fs-xsmall">' + escapeHtml(category) + '</span>';
+        }
+        html += '</h5>';
+        if (r.excerpt) {
+            html += '<p class="card-text text-muted mb-0">' + r.excerpt + '</p>';
+        }
+        html += '</div></div>';
+    }
+    resultsContainer.innerHTML = html;
+}
+
+function cardSearch(query) {
+    var search = query.toLowerCase();
     var cards = document.getElementsByClassName("card");
-    var show = true;
 
-    searchCards(search, cards);
-    updateUrlQuery(search);
-}
-
-function updateUrlQuery(search) {
-    var query = '';
-    if (search) {
-        query = '?q=' + search;
-    }
-
-    var url = window.location.toString();
-    if (url.indexOf('?') != -1) {
-        url = url.substring(0, url.indexOf('?'));
-    }
-
-    history.replaceState(null, null, url + query);
-}
-
-function searchCards(search, cards) {
     for (var i = 0; i < cards.length; i++) {
         var card = cards[i];
-
         var show = false;
         var c = card.children;
 
@@ -71,4 +165,24 @@ function searchCards(search, cards) {
             category.classList.remove("d-flex");
         }
     }
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function updateUrlQuery(search) {
+    var query = '';
+    if (search) {
+        query = '?q=' + encodeURIComponent(search);
+    }
+
+    var url = window.location.toString();
+    if (url.indexOf('?') != -1) {
+        url = url.substring(0, url.indexOf('?'));
+    }
+
+    history.replaceState(null, null, url + query);
 }
