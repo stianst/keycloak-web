@@ -1,5 +1,6 @@
 var pagefind = null;
 var pagefindAvailable = null;
+var searchId = 0;
 
 window.onload = function() {
     var searchInput = document.getElementById('guide-search');
@@ -68,16 +69,26 @@ async function search() {
     updateUrlQuery(query);
 
     var resultsContainer = document.getElementById('pagefind-results');
+    var currentId = ++searchId;
     setSearchLoading(query);
-    if (resultsContainer && await loadPagefind()) {
-        await pagefindSearch(query);
-    } else {
-        cardSearch(query);
+    try {
+        if (resultsContainer && await loadPagefind()) {
+            await pagefindSearch(query, currentId);
+        } else {
+            cardSearch(query);
+        }
+    } catch (e) {
+        if (currentId === searchId) {
+            cardSearch(query);
+        }
+    } finally {
+        if (currentId === searchId) {
+            setSearchLoading(false);
+        }
     }
-    setSearchLoading(false);
 }
 
-async function pagefindSearch(query) {
+async function pagefindSearch(query, currentId) {
     var cardContainer = document.getElementById('guide-cards');
     var resultsContainer = document.getElementById('pagefind-results');
 
@@ -91,9 +102,11 @@ async function pagefindSearch(query) {
     var version = document.getElementById('guide-search').getAttribute('data-pagefind-version');
     var searchOptions = version ? { filters: { version: version } } : {};
     var searchResult = await pagefind.search(query, searchOptions);
+    if (currentId !== searchId) return;
     var results = await Promise.all(
         searchResult.results.slice(0, 20).map(function(r) { return r.data(); })
     );
+    if (currentId !== searchId) return;
 
     cardContainer.style.display = 'none';
     resultsContainer.style.display = '';
@@ -108,10 +121,9 @@ async function pagefindSearch(query) {
         var r = results[i];
         var title = r.meta && r.meta.title ? r.meta.title : 'Untitled';
         var category = r.filters && r.filters.category ? r.filters.category[0] : '';
-        html += '<div class="card shadow-sm mb-3">';
+        html += '<a href="' + r.url + '" class="card shadow-sm mb-3 text-decoration-none">';
         html += '<div class="card-body">';
-        html += '<h5 class="card-title">';
-        html += '<a href="' + r.url + '" class="link-dark">' + escapeHtml(title) + '</a>';
+        html += '<h5 class="card-title link-dark">' + highlightTerms(title, query);
         if (category) {
             html += ' <span class="badge bg-light text-muted fs-xsmall">' + escapeHtml(category) + '</span>';
         }
@@ -119,7 +131,7 @@ async function pagefindSearch(query) {
         if (r.excerpt) {
             html += '<p class="card-text text-muted mb-0">' + r.excerpt + '</p>';
         }
-        html += '</div></div>';
+        html += '</div></a>';
     }
     resultsContainer.innerHTML = html;
 }
@@ -165,6 +177,14 @@ function cardSearch(query) {
             category.classList.remove("d-flex");
         }
     }
+}
+
+function highlightTerms(text, query) {
+    var escaped = escapeHtml(text);
+    var term = query.trim();
+    if (!term) return escaped;
+    var pattern = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return escaped.replace(pattern, '<mark>$1</mark>');
 }
 
 function escapeHtml(text) {

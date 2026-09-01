@@ -35,7 +35,7 @@
     </div>
 </nav>
 
-<div id="pagefind-results" class="container pt-4" style="display: none;"></div>
+<div id="pagefind-results" class="container pt-4" style="display: none;" aria-live="polite"></div>
 
 <div id="guide-cards" class="jumbotron jumbotron-fluid bg-light kc-bg-triangles kc-bg-fixed pt-4 pb-1">
 
