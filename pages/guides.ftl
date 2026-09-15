@@ -33,9 +33,9 @@
 <div id="guide-cards" class="jumbotron jumbotron-fluid bg-light kc-bg-triangles kc-bg-fixed pt-4 pb-1">
     <div class="container">
         <div class="row">
-            <div class="col-lg-3 mb-4">
+            <div class="col-lg-2 mb-4">
                 <nav class="guides-sidebar" aria-label="Guide categories">
-                    <h3 class="guides-sidebar-heading">Categories</h3>
+                    <h4 class="guides-sidebar-heading">Categories</h4>
                     <ul>
                         <#list guides.getCategories(false) as c>
                         <li>
@@ -45,7 +45,7 @@
                     </ul>
                 </nav>
             </div>
-            <div class="col-lg-9">
+            <div class="col-lg-10">
         <#list guides.getCategories(false) as c>
             <div class="row guide-category mb-4" id="${c.id}">
                 <h3>${c.title}</h3>

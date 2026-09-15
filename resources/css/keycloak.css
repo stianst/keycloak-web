@@ -271,10 +271,15 @@ header.navbar {
 .guides-sidebar {
     border-radius: 0.5rem;
     background-color: #EDEDED99;
-    padding: 2rem 1rem 1rem 1rem;
+    padding: 0.75rem;
     position: sticky;
     margin-right: 0.5rem;
     top: 1rem;
+}
+
+.guides-sidebar-heading {
+    padding: 0.75rem 0.75rem 0.5rem 0.75rem;
+    margin: 0 0 0.3rem 0;
 }
 
 .guides-sidebar ul {
@@ -289,11 +294,6 @@ header.navbar {
     border-radius: 0.5rem;
     color: var(--bs-body-color);
     text-decoration: none;
-}
-
-.guides-sidebar-heading {
-    padding: 0 0.75rem 0.4rem;
-    margin-bottom: 0.25rem;
 }
 
 .guides-sidebar a:hover {
