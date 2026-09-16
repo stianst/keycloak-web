@@ -85,7 +85,6 @@ function initSidebarScrollSpy() {
     }
 
     window.addEventListener('scroll', onScroll);
-    onScroll();
 }
 
 function debounce(fn, delay) {
